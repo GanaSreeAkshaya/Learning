@@ -1,68 +1,45 @@
 package apps.Course.Jdbc.JDBC;
 import java.sql.*;
 import java.util.Scanner;
-
 public class Jdbc {
+    public static void displayAllAccounts(Connection con) throws SQLException{
+        Statement st=con.createStatement();
+        ResultSet brs=st.executeQuery("Select *from accounts;");
+        while(brs.next()){
+                System.out.println(brs.getInt(1)+" "+brs.getString(2)+" "+brs.getInt(3));
+        }
+    }
     public static void main(String[] args) {
         Scanner sc=new Scanner(System.in);
         try {
-            String url = "jdbc:mysql://localhost:3306/testDb";
-            String userName = "root";
-            String password = "Akshaya@888";
-            Connection con = DriverManager.getConnection(url, userName, password);
-            con.setAutoCommit(false); // Start transaction
-
-            PreparedStatement balance=con.prepareStatement("select balance from accounts where id=?;");
-            PreparedStatement credit=con.prepareStatement("update accounts set balance=balance+? where id=?;");
-            PreparedStatement debit=con.prepareStatement("update accounts set balance=balance-? where id=?;");
-            Statement st=con.createStatement();
-            ResultSet brs=st.executeQuery("Select *from accounts;");
-            System.out.println("before");
-            while(brs.next()){
-                System.out.println(brs.getInt(1)+" "+brs.getString(2)+" "+brs.getInt(3));
-            }
-            System.err.println("Enter the accountid to be debited from: ");
+            Connection con=DBConnection.getConnection();
+            con.setAutoCommit(false);
+            System.out.println("Enter your account number: ");
             int debitId=sc.nextInt();sc.nextLine();
-            System.err.println("Enter the accountid to be credited to: ");
+            Account ac=new Account(debitId,con);
+            while(true){
+            System.out.println("\nSelect the action to be done\n1.Display All Accounts\n2.Fetch Balance\n3.Transfer Money\n4.Exit\n");
+            int op=sc.nextInt();sc.nextLine();
+            switch(op){
+                case 1:
+                displayAllAccounts(con);
+                break;
+                case 2:
+                System.out.println("Current Balance: "+ac.getBalance());break;
+                case 3:
+                System.err.println(ac.getName()+" Please Enter the accountid to be credited to: ");
             int creditId=sc.nextInt();sc.nextLine();
             System.out.println("Enter amount: ");
             int amount=sc.nextInt();sc.nextLine();
-            balance.setInt(1,debitId);
-            ResultSet rs=balance.executeQuery();
-            if(rs.next()){
-                if(rs.getInt(1)>=amount){
-                    try{
-                    credit.setInt(1, amount);
-                    credit.setInt(2, creditId);
-                    credit.executeUpdate();
-                    debit.setInt(1, amount);
-                    debit.setInt(2, debitId);
-                    debit.executeUpdate();
-                    con.commit();
-                    }
-                    catch(Exception e){
-                        con.rollback();
-                        System.out.println("Transaction failed");
-                    }
-                }
-                else{
-                    System.out.println("Insufficient balance..!");
-                    con.rollback();
-                }
+            ac.setBalance(creditId, amount);
+            break;
+            case 4:
+            System.out.println("Exiting...");
+            return;
             }
-            else{
-                System.out.println("..................transaction failed");
-            }
-            
-            ResultSet prs=st.executeQuery("Select *from accounts;");
-            while(prs.next()){
-                System.out.println(prs.getInt(1)+" "+prs.getString(2)+" "+prs.getInt(3));
-            }
-
+        }
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        System.out.println("Hi to JDBC!");
     }
 }
